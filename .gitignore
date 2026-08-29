@@ -1,0 +1,27 @@
+# CoCoTB ignores
+
+**/coverage_report
+**/sim_build
+**/cm.log
+**/results.xml
+**/ucli.key
+**/vcdplus.vpd
+**/waves.vcd
+
+**/build/01-cocotb-rtl-sim/
+!**/build/01-cocotb-rtl-sim/Makefile
+
+**/build/02-design-compiler-synth/
+!**/build/02-design-compiler-synth/synth.tcl
+
+**/build/03-cocotb-gl-sim/
+!**/build/03-cocotb-gl-sim/Makefile
+
+**/build/04-innovus-pnr/
+!**/build/04-innovus-pnr/pnr.tcl
+!**/build/04-innovus-pnr/setup-timing.tcl
+
+**/build/05-cocotb-ba-sim/
+!**/build/05-cocotb-ba-sim/Makefile
+
+*.log
