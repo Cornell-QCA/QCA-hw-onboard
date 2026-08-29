@@ -1,6 +1,7 @@
 # QCA Hardware onboarding project FA2026
 
 **Authors : Ivan Mokeyev**
+
 **Date    : August 29th, 2026**
 
 This is the repository for onboarding for the hardware team. Everyone will submit their individual work, but you can collaborate individually. In this repo, we have two on-boarding projects at two difficulty levels:
