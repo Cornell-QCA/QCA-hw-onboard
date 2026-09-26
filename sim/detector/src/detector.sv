@@ -33,67 +33,8 @@ module detector (
   output logic dout
 );
 
-parameter S0 = 3'b000;
-parameter S1 = 3'b001;
-parameter S2 = 3'b010;
-parameter S3 = 3'b011;
-parameter S4 = 3'b100;
 
-reg[2:0] state, next_state;
-
-// This part is for handling changing the state at each rising clock input
-always @(posedge clk) begin
-
-  if( rst ) state = S0;
-
-  else state = next_state;
-
-end
-
-// Combinational logic part, this actually handles what state is next
-always @(*) begin
-
-  next_state = state;
-
-  case (state)
-    S0: begin
-      dout = 1'b0;
-      if ( din ) next_state = S1;
-      else next_state = S0;
-    end
-
-    S1: begin
-      dout = 1'b0;
-      if( !din ) next_state = S2;
-      else next_state = S0;
-    end
-
-    S2: begin
-      dout = 1'b0;
-      if( din ) next_state = S3;
-      else next_state = S0;
-    end
-    
-    S3: begin
-      dout = 1'b0;
-      if( !din ) next_state = S4;
-      else next_state = S0;
-    end
-
-    S4: begin
-      dout = 1'b1;
-      if ( din ) next_state = S3;
-      else next_state = S0;
-    end
-
-    default: begin
-      dout = 1'b0;
-      next_state = state;
-    end
-
-  endcase
-
-end
+// to-do: implement the detector logic here
 
 endmodule
 
