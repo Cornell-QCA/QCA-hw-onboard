@@ -2,7 +2,7 @@
 # Authors: Johnny Martinez, Simeon Turner
 # Date: 08/30/2025
 # Documentation: 
-# Spec: FIFO CoCoTB Makefile
+# Spec: Detector CoCoTB Makefile
 # ===================================================================
 # Parameters: -------------------------------------------------------
 # HDL Language (always Verilog)
@@ -12,11 +12,11 @@ TOPLEVEL_LANG := verilog
 SIM := vcs
 
 # Top-level verilog source to test. Set appropiately depending on test mode.
-VERILOG_SOURCES += $(PWD)/../src/sync_fifo.sv
+VERILOG_SOURCES += $(PWD)/../src/detector.sv
 
 # Sets top level module and corresponding python test module
-TOPLEVEL = sync_fifo
-MODULE = "fifo-test"
+TOPLEVEL = detector
+MODULE = "detector-test"
 
 # Set to True if one wants to generate waves and coverage 
 # report respectively. False otherwise
@@ -32,7 +32,7 @@ export PYTHONPATH := $(PWD):$(PYTHONPATH)
 GIT_PATH=$(shell git rev-parse --show-toplevel)
 
 # Add all include directories referenced in the verilog source file
-COMPILE_ARGS += +incdir+$(GIT_PATH)/fifo/src
+COMPILE_ARGS += +incdir+$(GIT_PATH)/sim/detector/src
 
 # Enable systemverilog 
 COMPILE_ARGS += -sverilog

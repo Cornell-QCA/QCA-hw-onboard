@@ -9,9 +9,13 @@ from cocotb.regression import TestFactory
 import random
 
 import importlib.util
+import os
 import sys
 
-spec = importlib.util.spec_from_file_location("detector_fl", "detector-fl.py")
+# Load the FL model relative to this file so the test can be run from any
+# directory (e.g., the FPGA flow's simulation steps)
+spec = importlib.util.spec_from_file_location(
+  "detector_fl", os.path.join(os.path.dirname(os.path.abspath(__file__)), "detector-fl.py"))
 module = importlib.util.module_from_spec(spec)
 sys.modules["detector_fl"] = module
 spec.loader.exec_module(module)

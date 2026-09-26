@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+#=========================================================================
+# 02-synth
+#=========================================================================
+# Synthesizes the design with Vivado by running run.tcl in batch mode.
+# See run.tcl for the outputs and reports this step produces.
+
+# Stop on error and echo all commands
+
+set -e
+trap 'echo "CMD: $BASH_COMMAND"' DEBUG
+
+# Colors
+
+RED="\e[31m"
+GREEN="\e[32m"
+RESET="\e[0m"
+
+# Determine RUNDIR
+
+RUNDIR="$(dirname $(readlink -f "${BASH_SOURCE[0]}"))"
+cd $RUNDIR
+
+# Create fresh run.log and clear results from any previous run
+
+rm -rf run.log outputs reports .Xil *.jou
+
+if ! command -v vivado > /dev/null; then
+  echo -e "${RED}ERROR${RESET}: vivado not found -- run 'module load xilinx'"
+  echo "       (or source /classes/qca/setup-qca.sh) before running the flow"
+  exit 1
+fi
+
+#-------------------------------------------------------------------------
+# Synthesize
+#-------------------------------------------------------------------------
+
+set +e
+trap - DEBUG
+
+vivado -mode batch -notrace -nojournal -log run.log -source run.tcl
+
+status=$?
+set -e
+
+echo ""
+if [[ ${status} -eq 0 ]]; then
+  echo -e "${GREEN}[ PASSED ]${RESET} vivado synthesis: {{design_name}}"
+else
+  echo -e "${RED}[ FAILED ]${RESET} vivado synthesis: {{design_name}} (see ${RUNDIR}/run.log)"
+fi
+echo ""
+
+exit ${status}

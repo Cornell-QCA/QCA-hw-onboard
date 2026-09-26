@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+#=========================================================================
+# check-cocotb-results
+#=========================================================================
+# Checks a cocotb results.xml against the list of tests that were
+# requested. Every requested test must be present and pass -- a test that
+# never ran (e.g., a typo in the design yml) counts as a failure.
+#
+#   usage: check-cocotb-results <results.xml> <test> [<test> ...]
+
+import sys
+import xml.etree.ElementTree as ET
+
+RED   = "\033[31m"
+GREEN = "\033[32m"
+RESET = "\033[0m"
+
+def main():
+  if len( sys.argv ) < 3:
+    print( "usage: check-cocotb-results <results.xml> <test> [<test> ...]" )
+    return 2
+
+  results_file = sys.argv[1]
+  requested    = sys.argv[2:]
+
+  try:
+    root = ET.parse( results_file ).getroot()
+  except ( OSError, ET.ParseError ) as e:
+    print( f"{RED}ERROR{RESET}: could not read {results_file}: {e}" )
+    print( "       The simulation did not finish -- check run.log for a compile" )
+    print( "       error or a test name in the design yml that does not exist." )
+    return 1
+
+  # name -> "PASSED" | "FAILED" | "SKIPPED"
+
+  status = {}
+  for tc in root.iter( "testcase" ):
+    name = tc.get( "name" )
+    if tc.find( "failure" ) is not None or tc.find( "error" ) is not None:
+      status[name] = "FAILED"
+    elif tc.find( "skipped" ) is not None:
+      status[name] = "SKIPPED"
+    else:
+      status[name] = "PASSED"
+
+  num_bad = 0
+  print( "" )
+  for test in requested:
+    result = status.get( test, "MISSING" )
+    color  = GREEN if result == "PASSED" else RED
+    if result != "PASSED":
+      num_bad += 1
+    print( f" {color}[ {result:^7} ]{RESET} {test}" )
+
+  print( "" )
+  print( f" {len(requested) - num_bad}/{len(requested)} tests passed" )
+  print( "" )
+
+  return 1 if num_bad else 0
+
+if __name__ == "__main__":
+  sys.exit( main() )

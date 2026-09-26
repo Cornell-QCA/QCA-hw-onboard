@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+#=========================================================================
+# 00-lint
+#=========================================================================
+
+# Stop on error and echo all commands
+
+set -e
+trap 'echo "CMD: $BASH_COMMAND"' DEBUG
+
+# Colors
+
+RED="\e[31m"
+GREEN="\e[32m"
+RESET="\e[0m"
+
+# Determine RUNDIR
+
+RUNDIR="$(dirname $(readlink -f "${BASH_SOURCE[0]}"))"
+cd $RUNDIR
+
+# Create fresh run.log
+
+rm -rf run.log
+touch run.log
+
+SRC_DIR=$(readlink -f {{src_dir}})
+VERILOG_TOP=$(readlink -f {{verilog_top}})
+TB_DIR=$(readlink -f {{tb_dir}})
+
+# Verilator include/search paths: the top file's directory plus the
+# design source root so submodules and `include files are found
+
+TOP_DIR=$(dirname ${VERILOG_TOP})
+
+#-------------------------------------------------------------------------
+# Lint
+#-------------------------------------------------------------------------
+
+set +e
+trap - DEBUG
+
+verilator --lint-only -Wall \
+  --top-module {{design_name}} \
+  -I${TOP_DIR} -y ${TOP_DIR} \
+  -I${SRC_DIR} -y ${SRC_DIR} \
+  ${VERILOG_TOP} \
+  2>&1 | tee -a run.log
+
+status=${PIPESTATUS[0]}
+set -e
+
+#-------------------------------------------------------------------------
+# Report
+#-------------------------------------------------------------------------
+
+echo ""
+if [[ ${status} -eq 0 ]]; then
+  echo -e "${GREEN}[ PASSED ]${RESET} verilator lint: {{design_name}}"
+else
+  echo -e "${RED}[ FAILED ]${RESET} verilator lint: {{design_name}} (see ${RUNDIR}/run.log)"
+fi
+echo ""
+
+exit ${status}
