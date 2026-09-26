@@ -73,7 +73,7 @@ fpga
     └── ...
 ```
 
-Right now steps `00-lint`, `01-cocotb-rtl-sim`, and `02-synth` are implemented. Steps `03` to `07` (gate-level simulation, place and route, timing signoff, and bitstream generation) are still to come.
+Right now steps `00-lint` through `03-ffgl` are implemented. Steps `04` to `07` (place and route, timing signoff, back-annotated gate-level simulation, and bitstream generation) are still to come.
 
 ### How the Flow is Generated
 
@@ -118,6 +118,7 @@ build-fifo
 ├── 00-lint
 ├── 01-cocotb-rtl-sim
 ├── 02-synth
+├── 03-ffgl
 ├── ...
 └── run-flow
 ```
@@ -132,6 +133,7 @@ Run a single step with its `run` script, or every step in order with `run-flow`:
 % ./00-lint/run
 % ./01-cocotb-rtl-sim/run
 % ./02-synth/run
+% ./03-ffgl/run
 % ./run-flow
 ```
 
@@ -170,6 +172,14 @@ The step produces:
 | `reports/check-timing.rpt` | constraint problems, such as unconstrained ports or clocks |
 
 **WNS** (worst negative slack) is the slack on the slowest setup path; if it is negative, the design is too slow for `clock_period`. **WHS** is the same for hold. Timing after synthesis is only an estimate because nothing has been placed or routed yet, so negative slack is reported as a warning, not a failure. The real timing check will be done after place and route in `05-sta-signoff`.
+
+### 03-ffgl: Fast-Functional Gate-Level Simulation
+
+This step runs the same tests as `01-cocotb-rtl-sim`, but on the netlist that synthesis produced (`02-synth/outputs/post-synth.v`) instead of your RTL. Run `02-synth` first. It checks that synthesis did not change what your design does. For example, RTL that simulates correctly but relies on behavior synthesis treats differently (such as a missing reset or an incomplete `always_comb`) can fail here. "Fast-functional" means there are no gate or wire delays; timing is checked separately.
+
+The netlist is built from Xilinx primitives (`LUT6`, `FDRE`, `MUXF7`, `IBUF`, and so on) instead of your modules. VCS gets their simulation models from the Vivado install, in `data/verilog/src/unisims`. These primitives also connect to a global module called `glbl`, which models the FPGA's global set/reset (GSR). The step compiles `glbl.v` as a second top-level module. It also sets `glbl.ROC_WIDTH` to 0 so that GSR does not hold the flip-flops in reset for the first 100 ns; your test's reset controls the design, as it does in RTL simulation.
+
+The output is the same as in `01-cocotb-rtl-sim`: each test is reported as PASSED, FAILED, or MISSING, with details in `03-ffgl/run.log`. If a test passes in `01` but fails here, compare the two `run.log` files and set `dump_vcd` to `true` to compare waveforms.
 
 ### Adding Your Own Design to the Flow
 

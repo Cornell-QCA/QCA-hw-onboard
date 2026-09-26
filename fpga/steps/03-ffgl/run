@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+#=========================================================================
+# 03-ffgl
+#=========================================================================
+# Fast-functional gate-level simulation: runs the subset of cocotb tests
+# listed under `tests:` in the design yml on the post-synthesis netlist
+# from 02-synth (no timing). The testbench and harness are the same ones
+# used for RTL simulation -- see scripts/cocotb-sim.mk.
+
+# Stop on error and echo all commands
+
+set -e
+trap 'echo "CMD: $BASH_COMMAND"' DEBUG
+
+# Colors
+
+RED="\e[31m"
+GREEN="\e[32m"
+RESET="\e[0m"
+
+# Determine RUNDIR
+
+RUNDIR="$(dirname $(readlink -f "${BASH_SOURCE[0]}"))"
+cd $RUNDIR
+
+# Create fresh run.log and clear results from any previous run
+
+rm -rf run.log results.xml sim_build waves.vcd
+touch run.log
+
+TB_DIR=$(readlink -f {{tb_dir}})
+SCRIPTS_DIR=$(readlink -f {{scripts_dir}})
+NETLIST=$(readlink -f ../02-synth/outputs/post-synth.v)
+
+TESTS="{{ (tests or []) | join(' ') }}"
+
+if [[ -z "${TESTS}" ]]; then
+  echo -e "${RED}ERROR${RESET}: no tests listed under 'tests:' in the design yml"
+  exit 1
+fi
+
+if [[ ! -f "${NETLIST}" ]]; then
+  echo -e "${RED}ERROR${RESET}: ${NETLIST} not found -- run 02-synth first"
+  exit 1
+fi
+
+if ! command -v vcs > /dev/null; then
+  echo -e "${RED}ERROR${RESET}: vcs not found -- run 'module load synopsys-vcs'"
+  echo "       (or source /classes/qca/setup-qca.sh) before running the flow"
+  exit 1
+fi
+
+if ! command -v vivado > /dev/null; then
+  echo -e "${RED}ERROR${RESET}: vivado not found -- run 'module load xilinx'"
+  echo "       (or source /classes/qca/setup-qca.sh) before running the flow"
+  exit 1
+fi
+
+# Xilinx simulation models (unisims primitives and glbl) from the same
+# Vivado install that synthesized the netlist
+
+VIVADO_DIR=$(dirname $(dirname $(readlink -f $(command -v vivado))))
+XILINX_SIM_SRC=${VIVADO_DIR}/data/verilog/src
+
+case "{{dump_vcd}}" in
+  [Tt]rue) GEN_WAVES=True  ;;
+  *)       GEN_WAVES=False ;;
+esac
+
+#-------------------------------------------------------------------------
+# Simulate
+#-------------------------------------------------------------------------
+# The netlist's primitives reference glbl for global set/reset (GSR), so
+# glbl is elaborated as a second top. glbl holds every flop in reset for
+# ROC_WIDTH ps at time zero; set it to 0 so the cocotb test controls
+# reset exactly as it does in RTL simulation.
+
+set +e
+trap - DEBUG
+
+make -f ${SCRIPTS_DIR}/cocotb-sim.mk \
+  VERILOG_SOURCES="${NETLIST} ${XILINX_SIM_SRC}/glbl.v" \
+  INCLUDE_DIRS="${XILINX_SIM_SRC}/unisims" \
+  EXTRA_COMPILE_ARGS="-top glbl -pvalue+glbl.ROC_WIDTH=0" \
+  TOP={{design_name}} \
+  TB_DIR=${TB_DIR} \
+  TB_MODULE={{tb_module}} \
+  TESTS="${TESTS}" \
+  GEN_WAVES=${GEN_WAVES} \
+  2>&1 | tee -a run.log
+
+set -e
+
+#-------------------------------------------------------------------------
+# Check results
+#-------------------------------------------------------------------------
+
+${SCRIPTS_DIR}/check-cocotb-results results.xml ${TESTS} | tee -a run.log
+exit ${PIPESTATUS[0]}

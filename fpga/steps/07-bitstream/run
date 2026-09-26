@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+#=========================================================================
+# 07-bitstream
+#=========================================================================
+# Bitstream generation: runs the bitstream generation process on the post-P&R design
+# from 04-pnr.
+
+# Stop on error and echo all commands
+
+set -e
+trap 'echo "CMD: $BASH_COMMAND"' DEBUG
+
+# Colors
+
+RED="\e[31m"
+GREEN="\e[32m"
+RESET="\e[0m"
+
+# Determine RUNDIR
+
+RUNDIR="$(dirname $(readlink -f "${BASH_SOURCE[0]}"))"
+cd $RUNDIR

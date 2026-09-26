@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+#=========================================================================
+# 03-pnr
+#=========================================================================
+# Place and Route: runs the place and route process on the synthesized design
+# from 02-synth. The testbench and harness are the same ones
+# used for RTL simulation -- see scripts/cocotb-sim.mk.
+
+# Stop on error and echo all commands
+
+set -e
+trap 'echo "CMD: $BASH_COMMAND"' DEBUG
+
+# Colors
+
+RED="\e[31m"
+GREEN="\e[32m"
+RESET="\e[0m"
+
+# Determine RUNDIR
+
+RUNDIR="$(dirname $(readlink -f "${BASH_SOURCE[0]}"))"
+cd $RUNDIR

@@ -41,7 +41,7 @@ Each design is written and verified in `sim/`, then taken through an FPGA implem
         ├── 00-lint             # Verilator lint
         ├── 01-cocotb-rtl-sim   # cocotb tests on the RTL
         ├── 02-synth            # Vivado synthesis
-        ├── 03-ffgl             # (todo) fast-functional gate-level sim
+        ├── 03-ffgl             # cocotb tests on the post-synthesis netlist
         ├── 04-pnr              # (todo) place and route
         ├── 05-sta-signoff      # (todo) timing signoff
         ├── 06-bagl             # (todo) back-annotated gate-level sim
