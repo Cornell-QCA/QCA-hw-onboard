@@ -65,7 +65,8 @@ fpga
 │       └── pins.xdc        # physical constraints for the FIFO
 ├── scripts                 # helpers shared between steps
 │   ├── cocotb-sim.mk
-│   └── check-cocotb-results
+│   ├── check-cocotb-results
+│   └── vivado-summary.tcl
 └── steps                   # one directory per step (templates)
     ├── 00-lint
     ├── 01-cocotb-rtl-sim
@@ -73,7 +74,7 @@ fpga
     └── ...
 ```
 
-Right now steps `00-lint` through `03-ffgl` are implemented. Steps `04` to `07` (place and route, timing signoff, back-annotated gate-level simulation, and bitstream generation) are still to come.
+Right now steps `00-lint` through `04-pnr` are implemented. Steps `05` to `07` (timing signoff, back-annotated gate-level simulation, and bitstream generation) are still to come.
 
 ### How the Flow is Generated
 
@@ -119,6 +120,7 @@ build-fifo
 ├── 01-cocotb-rtl-sim
 ├── 02-synth
 ├── 03-ffgl
+├── 04-pnr
 ├── ...
 └── run-flow
 ```
@@ -134,6 +136,7 @@ Run a single step with its `run` script, or every step in order with `run-flow`:
 % ./01-cocotb-rtl-sim/run
 % ./02-synth/run
 % ./03-ffgl/run
+% ./04-pnr/run
 % ./run-flow
 ```
 
@@ -180,6 +183,34 @@ This step runs the same tests as `01-cocotb-rtl-sim`, but on the netlist that sy
 The netlist is built from Xilinx primitives (`LUT6`, `FDRE`, `MUXF7`, `IBUF`, and so on) instead of your modules. VCS gets their simulation models from the Vivado install, in `data/verilog/src/unisims`. These primitives also connect to a global module called `glbl`, which models the FPGA's global set/reset (GSR). The step compiles `glbl.v` as a second top-level module. It also sets `glbl.ROC_WIDTH` to 0 so that GSR does not hold the flip-flops in reset for the first 100 ns; your test's reset controls the design, as it does in RTL simulation.
 
 The output is the same as in `01-cocotb-rtl-sim`: each test is reported as PASSED, FAILED, or MISSING, with details in `03-ffgl/run.log`. If a test passes in `01` but fails here, compare the two `run.log` files and set `dump_vcd` to `true` to compare waveforms.
+
+### 04-pnr: Vivado Place and Route
+
+This step places and routes the synthesized design with Vivado. Run `02-synth` first. Like synthesis, the `run` script starts Vivado in batch mode, which runs `run.tcl`. The script opens the synthesis checkpoint (`02-synth/outputs/post-synth.dcp`), which already contains the target part and all of the constraints, and then runs:
+
+1. `opt_design`: optimizes the netlist (removes unused logic, merges LUTs)
+2. `place_design`: assigns every cell to a physical site on the FPGA
+3. `phys_opt_design`: uses the placement to improve timing on critical paths
+4. `route_design`: connects the placed cells using the FPGA's routing wires
+
+The step produces:
+
+| File | Contents |
+| --- | --- |
+| `outputs/post-route.dcp` | Vivado checkpoint of the routed design, for timing signoff and the bitstream |
+| `outputs/post-route.v` | timing netlist, for back-annotated gate-level simulation |
+| `outputs/post-route.sdf` | cell and wire delays of the routed design (SDF), for back-annotated gate-level simulation |
+| `reports/utilization.rpt` | resources used (area) |
+| `reports/utilization-hier.rpt` | resources used, broken down by module |
+| `reports/timing-summary.rpt` | timing summary and the 20 worst paths |
+| `reports/check-timing.rpt` | constraint problems, such as unconstrained ports or clocks |
+| `reports/drc.rpt` | design rule check (DRC) violations |
+| `reports/route-status.rpt` | whether every net was routed |
+| `reports/io.rpt` | which package pin each port was placed on |
+
+The summary at the end of `04-pnr/run.log` has the same resource and slack numbers as synthesis, plus the number of DRC errors and critical warnings, and the number of nets that could not be routed. The timing numbers now use real routed delays, so they are more accurate than the synthesis estimate. As in synthesis, negative slack is only a warning here; `05-sta-signoff` will be the real timing check. The step fails if any net could not be routed.
+
+Until you assign pins in `fpga/designs/<design>/pins.xdc`, `drc.rpt` will show two critical warnings: NSTD-1 (no I/O standard) and UCIO-1 (no pin location). Vivado placed the ports on arbitrary pins. That is fine for place and route and timing, but generating a bitstream will fail until every port has a `PACKAGE_PIN` and `IOSTANDARD`.
 
 ### Adding Your Own Design to the Flow
 

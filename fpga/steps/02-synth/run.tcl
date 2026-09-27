@@ -58,32 +58,6 @@ report_utilization    -hierarchical       -file reports/utilization-hier.rpt
 # Post-synthesis timing is an estimate (no routing yet), so negative slack
 # is a warning here -- 05-sta-signoff is the real check.
 
-proc num_cells { group } {
-  return [llength [get_cells -hierarchical -quiet -filter "PRIMITIVE_GROUP == $group"]]
-}
+source [file normalize {{scripts_dir}}/vivado-summary.tcl]
 
-set setup_path [get_timing_paths -quiet -setup -max_paths 1]
-set hold_path  [get_timing_paths -quiet -hold  -max_paths 1]
-set wns [expr { $setup_path eq "" ? "n/a" : [get_property SLACK $setup_path] }]
-set whs [expr { $hold_path  eq "" ? "n/a" : [get_property SLACK $hold_path]  }]
-
-puts ""
-puts "==================================================================="
-puts " Synthesis summary: $design_name ($part)"
-puts "==================================================================="
-puts " LUTs      : [num_cells LUT]"
-puts " FFs       : [num_cells FLOP_LATCH]"
-puts " LUTRAMs   : [num_cells DMEM]"
-puts " BRAMs     : [num_cells BMEM]"
-puts " DSPs      : [num_cells MULT]"
-puts " IOs       : [num_cells IO]"
-puts " WNS (ns)  : $wns"
-puts " WHS (ns)  : $whs"
-if { $setup_path ne "" && $wns < 0 } {
-  puts " WARNING   : setup timing not met after synthesis"
-}
-if { $hold_path ne "" && $whs < 0 } {
-  puts " WARNING   : hold timing not met after synthesis"
-}
-puts "==================================================================="
-puts ""
+print_summary "Synthesis summary" "synthesis"

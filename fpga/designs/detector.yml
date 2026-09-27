@@ -1,0 +1,66 @@
+#=========================================================================
+# detector.yml
+#=========================================================================
+
+#-------------------------------------------------------------------------
+# steps
+#-------------------------------------------------------------------------
+
+steps:
+ - 00-lint
+ - 01-cocotb-rtl-sim
+ - 02-synth
+ - 03-ffgl
+ - 04-pnr
+ - 05-sta-signoff
+ - 06-bagl
+ - 07-bitstream
+
+#-------------------------------------------------------------------------
+# variables
+#-------------------------------------------------------------------------
+
+design_name  : detector
+clock_port   : clk
+clock_period : 10.0
+dump_vcd     : false
+
+# Target FPGA part (Vivado part name)
+
+fpga_part    : xc7a35tcpg236-1
+
+#-------------------------------------------------------------------------
+# Verilog sources and testbenches
+#-------------------------------------------------------------------------
+# Paths are relative to the step directory (e.g., build-fifo/01-*)
+
+src_dir     : ../../../sim
+verilog_top : ../../../sim/detector/src/detector.sv
+tb_dir      : ../../../sim/detector/test/
+tb_module   : detector-test
+
+# Physical constraints (pins, placement, routing) for this design. The
+# clock constraint is generated from clock_port/clock_period.
+
+constraints:
+ - ../../designs/detector/pins.xdc
+
+# Shared flow scripts (cocotb harness, results checker)
+
+scripts_dir : ../../scripts
+
+#-------------------------------------------------------------------------
+# tests
+#-------------------------------------------------------------------------
+# Subset of cocotb tests from tb_module to run in every simulation step
+# (01-cocotb-rtl-sim, 03-ffgl, 06-bagl). Names are cocotb test function
+# names.
+
+tests:
+ - test_basic
+
+#-------------------------------------------------------------------------
+# evals
+#-------------------------------------------------------------------------
+
+evals:

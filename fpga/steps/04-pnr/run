@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #=========================================================================
-# 03-pnr
+# 04-pnr
 #=========================================================================
-# Place and Route: runs the place and route process on the synthesized design
-# from 02-synth. The testbench and harness are the same ones
-# used for RTL simulation -- see scripts/cocotb-sim.mk.
+# Places and routes the synthesized design from 02-synth with Vivado by
+# running run.tcl in batch mode. See run.tcl for the outputs and reports
+# this step produces.
 
 # Stop on error and echo all commands
 
@@ -21,3 +21,40 @@ RESET="\e[0m"
 
 RUNDIR="$(dirname $(readlink -f "${BASH_SOURCE[0]}"))"
 cd $RUNDIR
+
+# Create fresh run.log and clear results from any previous run
+
+rm -rf run.log outputs reports .Xil *.jou
+
+if [[ ! -f ../02-synth/outputs/post-synth.dcp ]]; then
+  echo -e "${RED}ERROR${RESET}: ../02-synth/outputs/post-synth.dcp not found -- run 02-synth first"
+  exit 1
+fi
+
+if ! command -v vivado > /dev/null; then
+  echo -e "${RED}ERROR${RESET}: vivado not found -- run 'module load xilinx'"
+  echo "       (or source /classes/qca/setup-qca.sh) before running the flow"
+  exit 1
+fi
+
+#-------------------------------------------------------------------------
+# Place and route
+#-------------------------------------------------------------------------
+
+set +e
+trap - DEBUG
+
+vivado -mode batch -notrace -nojournal -log run.log -source run.tcl
+
+status=$?
+set -e
+
+echo ""
+if [[ ${status} -eq 0 ]]; then
+  echo -e "${GREEN}[ PASSED ]${RESET} vivado place and route: {{design_name}}"
+else
+  echo -e "${RED}[ FAILED ]${RESET} vivado place and route: {{design_name}} (see ${RUNDIR}/run.log)"
+fi
+echo ""
+
+exit ${status}

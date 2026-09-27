@@ -36,13 +36,14 @@ Each design is written and verified in `sim/`, then taken through an FPGA implem
     │       └── pins.xdc        # physical constraints for the design
     ├── scripts
     │   ├── cocotb-sim.mk       # cocotb harness shared by all sim steps
-    │   └── check-cocotb-results
+    │   ├── check-cocotb-results
+    │   └── vivado-summary.tcl  # summary shared by the Vivado steps
     └── steps
         ├── 00-lint             # Verilator lint
         ├── 01-cocotb-rtl-sim   # cocotb tests on the RTL
         ├── 02-synth            # Vivado synthesis
         ├── 03-ffgl             # cocotb tests on the post-synthesis netlist
-        ├── 04-pnr              # (todo) place and route
+        ├── 04-pnr              # Vivado place and route
         ├── 05-sta-signoff      # (todo) timing signoff
         ├── 06-bagl             # (todo) back-annotated gate-level sim
         └── 07-bitstream        # (todo) bitstream generation
